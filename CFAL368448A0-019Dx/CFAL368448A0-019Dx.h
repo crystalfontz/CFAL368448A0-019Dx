@@ -135,39 +135,37 @@
 //    A1    |  PC1 |  C   | QSPI IO1 / DCX
 //    A2    |  PC2 |  C   | QSPI IO3 / D1
 //    A3    |  PC3 |  C   | QSPI IO2 / D0
-//    A4    |  PC4 |  C   | QSPI CLK
 //  --------+------+------+-------------------------------------------
+//    D8    |  PB0 |  B   | Display reset        (active low)
+//    D9    |  PB1 |  B   | Display chip select  (active low)
+//    D10   |  PB2 |  B   | SD card chip select  (active low)
 //    D11   |  PB3 |  B   | SD MOSI  (hardware SPI -- display not connected)
 //    D12   |  PB4 |  B   | SD MISO  (hardware SPI -- display not connected)
 //    D13   |  PB5 |  B   | SD SCK   (hardware SPI -- display not connected)
 //  --------+------+------+-------------------------------------------
-//    D4    |  PD4 |  D   | SD card chip select (active low)
-//    D6    |  PD6 |  D   | Display chip select  (active low)
-//    D7    |  PD7 |  D   | Display reset        (active low)
-//
-// Note: A4 (PC4) doubles as the I2C SDA pin.  If cap touch is added on a
-// future variant using I2C, move the CLK signal to A5 and reassign
-// accordingly.
+//    D5    |  PD5 |  D   | QSPI CLK
 //==============================================================================
 
-// PORTC: set PC0-PC4 as outputs; leave PC5-PC7 alone.
-#define PORTC_OUT_MASK  (0x1F)
-// PORTD: set PD4, PD6, PD7 as outputs; leave all other PORTD bits alone.
-#define PORTD_OUT_MASK  (0xF0)
-// PORTB: set PB1, PB2, PB0 as outputs; leave all other PORTB bits alone.
+// PORTC: set PC0-PC3 as outputs; leave PC4-PC7 alone.
+#define PORTC_OUT_MASK  (0x0F)
+// PORTD: set PD5 (CLK) as output; leave all other PORTD bits alone.
+#define PORTD_OUT_MASK  (0x20)
+// PORTB: set PB0-PB2 (RST, CS, SDCS) as outputs; leave all other PORTB bits alone.
 #define PORTB_OUT_MASK  (0x07)
 
-// PORTC bit masks  (QSPI signals)
+// PORTC bit masks  (QSPI data signals)
 #define SDI_MASK  (0x01)   // PC0, A0 -- QSPI IO0
 #define DCX_MASK  (0x02)   // PC1, A1 -- QSPI IO1
 #define D1_MASK   (0x04)   // PC2, A2 -- QSPI IO3
 #define D0_MASK   (0x08)   // PC3, A3 -- QSPI IO2
-#define CLK_MASK  (0x20)   // PC4, A4 -- QSPI CLK
 
 // PORTD bit masks
-#define SDCS_MASK  (0x04)  // PB2, D10 -- SD card chip select
-#define CS_MASK    (0x02)  // PB1, D9  -- display chip select
+#define CLK_MASK  (0x20)   // PD5, D5  -- QSPI CLK
+
+// PORTB bit masks
 #define RST_MASK   (0x01)  // PB0, D8  -- display reset
+#define CS_MASK    (0x02)  // PB1, D9  -- display chip select
+#define SDCS_MASK  (0x04)  // PB2, D10 -- SD card chip select
 
 // Direct port manipulation macros
 #define CLR_SDI   (PORTC &= ~SDI_MASK)
