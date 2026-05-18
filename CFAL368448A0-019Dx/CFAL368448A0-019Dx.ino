@@ -729,9 +729,11 @@ bool drawBitmapFromSD(const char *filename)
   spiSendByte(0x2C);
   spiSendByte(0x00);
 
-  // Row buffer: 184 bytes = 92 pixels per chunk.  Static to stay off the stack.
-  static uint8_t rowBuf[DISP_WIDTH / 2];    // 184 bytes = 92 pixels
-  const uint16_t CHUNK_PX = DISP_WIDTH / 4; // 92 pixels per chunk
+  // Row buffer: 64 bytes = 32 pixels per chunk.  Static to stay off the stack.
+  // Kept small to leave headroom for the SD library's call stack (~512-byte
+  // sector cache + file-object frames already consume most of SRAM).
+  static uint8_t rowBuf[64];   // 32 pixels × 2 bytes
+  const uint16_t CHUNK_PX = 32;
 
   for (uint16_t row = 0; row < drawH; row++)
   {

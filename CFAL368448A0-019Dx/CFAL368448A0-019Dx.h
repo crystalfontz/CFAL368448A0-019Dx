@@ -80,13 +80,13 @@
 //   SD card images:      COLOR=1 CIRCLES=0 LINES=0 CHECKER=0 EXPANDING=0
 //                        LOGO=0 SD=1
 //==============================================================================
-#define COLOR_DEMO      (1)  // Solid color cycle: red, green, blue, white
-#define CIRCLES_DEMO    (1)  // Multiple circles (Midpoint circle algorithm)
+#define COLOR_DEMO      (0)  // Solid color cycle: red, green, blue, white
+#define CIRCLES_DEMO    (0)  // Multiple circles (Midpoint circle algorithm)
 #define LINES_DEMO      (0)  // Line fan from center (Bresenham's algorithm)
-#define CHECKER_DEMO    (1)  // 16x16 color checkerboard
-#define EXPANDING_DEMO  (1)  // Row of expanding concentric circles
+#define CHECKER_DEMO    (0)  // 16x16 color checkerboard
+#define EXPANDING_DEMO  (0)  // Row of expanding concentric circles
 #define LOGO_DEMO       (0)  // CFA logo from flash  (requires cfa_logo.h)
-#define SD_DEMO         (0)  // BMP images from micro SD card
+#define SD_DEMO         (1)  // BMP images from micro SD card
 
 // Milliseconds to pause between demo screens
 #define WAIT_TIME  (2000)
