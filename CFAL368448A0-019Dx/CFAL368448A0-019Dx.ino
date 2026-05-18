@@ -5,8 +5,8 @@
 //  Driver IC:  CH13620
 //  Interface:  QSPI (bit-banged)
 //
-//  CFAL368448A0-019DN -- No touchscreen
-//  CFAL368448A0-019DC -- Capacitive touchscreen (implementation pending)
+//  CFAL368448A0-019DN - No touchscreen
+//  CFAL368448A0-019DC - Capacitive touchscreen 
 //
 //  Code written for Seeeduino v4.2 set to 3.3V (IMPORTANT!)
 //    https://www.crystalfontz.com/product/cfapn15062
@@ -16,7 +16,7 @@
 //
 //==============================================================================
 //
-//  2025-05-14 Crystalfontz
+//  2026-05-18 Crystalfontz
 //
 //==============================================================================
 // This is free and unencumbered software released into the public domain.
@@ -71,16 +71,19 @@
 // The display QSPI bus (A0-A3 / PORTC, D5 / PORTD) and the SD hardware SPI bus
 // (D11-D13 / PORTB) are on separate ports with no shared pins.
 //
-// Cap touch wiring -- CFAL368448A0-019DC only (implementation pending):
+// Cap touch (CST816) -- CFAL368448A0-019DC only:
 // | Touch Pin      | Seeeduino | Signal                            |
 // |----------------+-----------+-----------------------------------|
-// |   (TBD)        |   (TBD)   | (TBD)                             |
+// |  RST           |    D6     | CST816 reset (active low)         |
+// |  INT           |    D7     | CST816 interrupt (active low)     |
+// |  SDA           |    A4     | I2C data (hardware TWI)           |
+// |  SCL           |    A5     | I2C clock (hardware TWI)          |
 //
 //==============================================================================
 
 #include <Arduino.h>
 #include <avr/pgmspace.h>
-#include "CFAL368448A0-019DN.h"
+#include "CFAL368448A0-019Dx.h"
 
 #if (0 != LOGO_DEMO)
 #include "cfa_logo.h" // PROGMEM RGB565 array; defines LOGO_WIDTH, LOGO_HEIGHT
@@ -88,6 +91,10 @@
 
 #if BUILD_SD
 #include <SD.h>
+#endif
+
+#if (TOUCH_TYPE == TOUCH_TYPE_CAP)
+#include <Wire.h>
 #endif
 
 //==============================================================================
@@ -137,13 +144,13 @@ void qspiSendByte(uint8_t data)
   uint8_t portval;
 
   // High nibble: data[7:4] -> PC[3,2,1,0]
-  portval = ((data >> 4) & 0x0f); 
+  portval = ((data >> 4) & 0x0f);
   PORTC = (PORTC & 0xF0) | portval;
   SET_CLK;
   CLR_CLK;
-  
+
   // Low nibble: data[3:0] -> PC[3,2,1,0]
-  portval = (data & 0x0f); 
+  portval = (data & 0x0f);
   PORTC = (PORTC & 0xF0) | portval;
   SET_CLK;
   CLR_CLK;
@@ -162,6 +169,7 @@ void qspiSendByte(uint8_t data)
 //==============================================================================
 void writeCommand(uint8_t cmd)
 {
+  PORTC &= 0xF0;  // clear IO0-IO3 before CS asserts
   CLR_CS;
   spiSendByte(0x02);
   spiSendByte(0x00);
@@ -172,6 +180,7 @@ void writeCommand(uint8_t cmd)
 
 void writeCommandParam(uint8_t cmd, uint8_t param)
 {
+  PORTC &= 0xF0;  // clear IO0-IO3 before CS asserts
   CLR_CS;
   spiSendByte(0x02);
   spiSendByte(0x00);
@@ -183,6 +192,7 @@ void writeCommandParam(uint8_t cmd, uint8_t param)
 
 void writeCommandData(uint8_t cmd, const uint8_t *data, uint8_t len)
 {
+  PORTC &= 0xF0;  // clear IO0-IO3 before CS asserts
   CLR_CS;
   spiSendByte(0x02);
   spiSendByte(0x00);
@@ -390,6 +400,8 @@ void initDisplay()
   delay(20);
 }
 
+
+
 //==============================================================================
 // DRAWING PRIMITIVES
 //==============================================================================
@@ -397,29 +409,27 @@ void initDisplay()
 // putPixel, LCD_Circle, Fast_Horizontal_Line, and LCD_Line are only compiled
 // when at least one demo that calls them is enabled.  Guarding them saves
 // roughly 1.8 KB of flash when all three drawing demos are disabled.
-#if (0 != CIRCLES_DEMO) || (0 != LINES_DEMO) || (0 != EXPANDING_DEMO)
+#if (0 != CIRCLES_DEMO) || (0 != LINES_DEMO) || (0 != EXPANDING_DEMO) || (TOUCH_TYPE != TOUCH_CAP)
 
 //------------------------------------------------------------------------------
 // Write a single pixel at (x, y) in RGB565 color.
-// Opens a 1x1 write window, issues the QSPI RAMWR command, sends two bytes.
+//
+// The CH13620 requires a minimum RAMWR payload larger than one pixel; a 1x1
+// window write is silently ignored.  The workaround is to open a 2x2 window
+// and fill all four pixels with the same color.  Circle and line outlines are
+// 2 pixels wide as a result, which is acceptable at this display density.
 //------------------------------------------------------------------------------
 void putPixel(uint16_t x, uint16_t y, uint16_t color)
 {
-  uint8_t col[4] = {(uint8_t)(x >> 8), (uint8_t)(x & 0xFF),
-                    (uint8_t)(x >> 8), (uint8_t)(x & 0xFF)};
-  writeCommandData(0x2A, col, 4);
-
-  uint8_t row[4] = {(uint8_t)(y >> 8), (uint8_t)(y & 0xFF),
-                    (uint8_t)(y >> 8), (uint8_t)(y & 0xFF)};
-  writeCommandData(0x2B, row, 4);
-
+  uint8_t hi = color >> 8;
+  uint8_t lo = color & 0xFF;
+  setWindow(x, y, x + 1, y + 1);
   CLR_CS;
-  spiSendByte(0x32);
-  spiSendByte(0x00);
-  spiSendByte(0x2C);
-  spiSendByte(0x00);
-  qspiSendByte(color >> 8);
-  qspiSendByte(color & 0xFF);
+  spiSendByte(0x32); spiSendByte(0x00); spiSendByte(0x2C); spiSendByte(0x00);
+  qspiSendByte(hi); qspiSendByte(lo);
+  qspiSendByte(hi); qspiSendByte(lo);
+  qspiSendByte(hi); qspiSendByte(lo);
+  qspiSendByte(hi); qspiSendByte(lo);
   SET_CS;
 }
 
@@ -500,7 +510,7 @@ void drawBitmap(uint16_t x, uint16_t y,
 //==============================================================================
 
 // Swap helper and line primitives -- only compiled when LINES_DEMO is active
-#if (0 != LINES_DEMO)
+#if (0 != LINES_DEMO || TOUCH_TYPE != TOUCH_CAP)
 #define mSwap(a, b, t) \
   {                    \
     t = a;             \
@@ -807,13 +817,68 @@ void show_BMPs_in_root(void)
 
 //==============================================================================
 // CAP TOUCH  (CFAL368448A0-019DC)
-// Implementation pending -- wiring and register map TBD.
+// Controller: CST816  (I2C 0x15)
+// Reset: D6 (active low)    INT: D7 (active low)
+// SDA: A4    SCL: A5  (ATmega328P hardware TWI)
+//
+// Register burst from 0x01 (6 bytes):
+//   [0] GestureID  [1] FingerNum
+//   [2] XposH (bits[3:0] = X[11:8])  [3] XposL
+//   [4] YposH (bits[3:0] = Y[11:8])  [5] YposL
 //==============================================================================
 #if (TOUCH_TYPE == TOUCH_TYPE_CAP)
 
-// TODO: add I2C touch controller initialization and polling here.
-// See CFAF240320A0-024Sx reference code for an example using the
-// Sitronix ST1624 controller (Wire library, address 0x55).
+void touchInit()
+{
+  pinMode(TOUCH_RST_PIN, OUTPUT);
+  pinMode(TOUCH_INT_PIN, INPUT);
+  digitalWrite(TOUCH_RST_PIN, LOW);
+  delay(20);
+  digitalWrite(TOUCH_RST_PIN, HIGH);
+  delay(50);
+  Wire.begin();
+}
+
+// Returns true and fills *x/*y when at least one finger is down.
+bool touchRead(uint16_t *x, uint16_t *y)
+{
+  Wire.beginTransmission(TOUCH_I2C_ADDR);
+  Wire.write(0x01);
+  if (Wire.endTransmission(false) != 0)
+    return false;
+  Wire.requestFrom((uint8_t)TOUCH_I2C_ADDR, (uint8_t)6);
+  if (Wire.available() < 6)
+    return false;
+  Wire.read();                   // GestureID (unused)
+  uint8_t fingers = Wire.read(); // FingerNum
+  uint8_t xh = Wire.read();      // XposH
+  uint8_t xl = Wire.read();      // XposL
+  uint8_t yh = Wire.read();      // YposH
+  uint8_t yl = Wire.read();      // YposL
+  if (fingers == 0)
+    return false;
+  *x = ((uint16_t)(xh & 0x0F) << 8) | xl;
+  *y = ((uint16_t)(yh & 0x0F) << 8) | yl;
+  return true;
+}
+
+// Close button: 44x44 red box centered at the top of the screen.
+// A white X is drawn as two 2-pixel-wide diagonal stripes with 8px margins.
+#define CLOSE_BTN_W 44
+#define CLOSE_BTN_H 44
+#define CLOSE_BTN_X ((DISP_WIDTH - CLOSE_BTN_W) / 2) // 162
+#define CLOSE_BTN_Y 5
+
+void drawCloseButton()
+{
+  fillRect(CLOSE_BTN_X, CLOSE_BTN_Y, CLOSE_BTN_W, CLOSE_BTN_H, COLOR_RED);
+  LCD_Line(CLOSE_BTN_X + 8, CLOSE_BTN_Y + 8,
+           CLOSE_BTN_X + CLOSE_BTN_W - 8, CLOSE_BTN_Y + CLOSE_BTN_H - 8,
+           COLOR_WHITE);
+  LCD_Line(CLOSE_BTN_X + 8, CLOSE_BTN_Y + CLOSE_BTN_H - 8,
+           CLOSE_BTN_X + CLOSE_BTN_W - 8, CLOSE_BTN_Y + 8,
+           COLOR_WHITE);
+}
 
 #endif // TOUCH_TYPE_CAP
 
@@ -849,7 +914,8 @@ void setup()
 #endif
 
 #if (TOUCH_TYPE == TOUCH_TYPE_CAP)
-  // TODO: initialize I2C and cap touch controller here
+  touchInit();
+  Serial.println(F("Touch controller ready"));
 #endif
 
   Serial.println(F("Resetting display..."));
@@ -866,7 +932,53 @@ void setup()
 //==============================================================================
 void loop()
 {
-  // ---------- SOLID COLOR CYCLE ------------------------------------------
+  Serial.println(F("Starting demo sequence from the top..."));
+// ---------- CAPACITIVE TOUCH -------------------------------------------
+// state  0: first entry -- clears screen and draws the close button
+// state  1: active -- draws cyan dots; tap the red X to exit
+// state -1: exited -- falls through to other demos
+#if (TOUCH_TYPE == TOUCH_TYPE_CAP)
+  {
+    static int8_t state = 0;
+    if (state == 0)
+    {
+      fillScreen(COLOR_BLACK);
+      drawCloseButton();
+      state = 1;
+      Serial.println(F("Touch the screen  (tap X to exit)"));
+    }
+    while (state > 0)
+    {
+      if (digitalRead(TOUCH_INT_PIN) == LOW)
+      {
+        uint16_t tx, ty;
+        if (touchRead(&tx, &ty))
+        {
+          if (tx >= CLOSE_BTN_X && tx < (CLOSE_BTN_X + CLOSE_BTN_W) &&
+              ty >= CLOSE_BTN_Y && ty < (CLOSE_BTN_Y + CLOSE_BTN_H))
+          {
+            state = 0; // Change to -1 to skip the touch demo every loop after the first loop
+            Serial.println(F("Touch demo exit"));
+          }
+          else
+          {
+            Serial.print(F("Touch ("));
+            Serial.print(tx);
+            Serial.print(F(", "));
+            Serial.print(ty);
+            Serial.println(F(")"));
+            if (tx < DISP_WIDTH && ty < DISP_HEIGHT)
+              fillRect(tx > 2 ? tx - 3 : 0,
+                       ty > 2 ? ty - 3 : 0,
+                       6, 6, COLOR_CYAN);
+          }
+        }
+      }
+    }
+  }
+#endif
+
+// ---------- SOLID COLOR CYCLE ------------------------------------------
 #if (0 != COLOR_DEMO)
   Serial.println(F("Color: red"));
   fillScreen(COLOR_RED);
@@ -885,7 +997,7 @@ void loop()
   delay(WAIT_TIME);
 #endif
 
-  // ---------- CIRCLES (Midpoint circle algorithm) -------------------------
+// ---------- CIRCLES (Midpoint circle algorithm) -------------------------
 #if (0 != CIRCLES_DEMO)
   Serial.println(F("Circles"));
   fillScreen(COLOR_BLUE);
@@ -902,10 +1014,10 @@ void loop()
   delay(WAIT_TIME);
 #endif
 
-  // ---------- LINE FAN (Bresenham's algorithm) ----------------------------
-  // Lines fan out from the center to all four edges.  The RGB bytes cycle
-  // freely as uint8_t counters; they are converted to RGB565 at each call.
-  // RGB565 packing: R[15:11] = r>>3, G[10:5] = g>>2, B[4:0] = b>>3
+// ---------- LINE FAN (Bresenham's algorithm) ----------------------------
+// Lines fan out from the center to all four edges.  The RGB bytes cycle
+// freely as uint8_t counters; they are converted to RGB565 at each call.
+// RGB565 packing: R[15:11] = r>>3, G[10:5] = g>>2, B[4:0] = b>>3
 #if (0 != LINES_DEMO)
   {
     uint8_t r, g, b;
@@ -954,7 +1066,7 @@ void loop()
   } // LINES_DEMO block
 #endif
 
-  // ---------- CHECKERBOARD -----------------------------------------------
+// ---------- CHECKERBOARD -----------------------------------------------
 #if (0 != CHECKER_DEMO)
   // The 368x448 display divides evenly into 23x28 blocks of 16x16 pixels.
   // fillRect() is used for each block so the whole pattern renders quickly.
@@ -969,15 +1081,15 @@ void loop()
       else
         // Vary the hue across the board: red from column, green from row
         color = (uint16_t)((cx * 2) & 0x1F) << 11 | (uint16_t)((cy * 2) & 0x3F) << 5 | 0x1F; // full blue component
-      filpaintlRect((uint16_t)cx * 16, (uint16_t)cy * 16, 16, 16, color);
+      fillRect((uint16_t)cx * 16, (uint16_t)cy * 16, 16, 16, color);
     }
   }
   delay(WAIT_TIME);
 #endif
 
-  // ---------- EXPANDING CIRCLES ------------------------------------------
-  // Circles grow from left to right across the display.  The color shifts
-  // from blue-green toward red as each circle gets larger.
+// ---------- EXPANDING CIRCLES ------------------------------------------
+// Circles grow from left to right across the display.  The color shifts
+// from blue-green toward red as each circle gets larger.
 #if (0 != EXPANDING_DEMO)
   {
     Serial.println(F("Expanding circles"));
@@ -993,7 +1105,7 @@ void loop()
   } // EXPANDING_DEMO block
 #endif
 
-  // ---------- LOGO FROM FLASH --------------------------------------------
+// ---------- LOGO FROM FLASH --------------------------------------------
 #if (0 != LOGO_DEMO)
   Serial.println(F("Logo"));
   fillScreen(COLOR_BLACK);
@@ -1003,7 +1115,7 @@ void loop()
   delay(WAIT_TIME * 2);
 #endif
 
-  // ---------- IMAGES FROM SD CARD ----------------------------------------
+// ---------- IMAGES FROM SD CARD ----------------------------------------
 #if (0 != SD_DEMO)
   Serial.println(F("SD images"));
   show_BMPs_in_root();

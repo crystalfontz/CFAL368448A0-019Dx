@@ -1,5 +1,5 @@
-#ifndef CFAL368448A0_019DN_H
-#define CFAL368448A0_019DN_H
+#ifndef CFAL368448A0_019DX_H
+#define CFAL368448A0_019DX_H
 //==============================================================================
 //
 //  CRYSTALFONTZ CFAL368448A0-019DN / CFAL368448A0-019DC
@@ -49,10 +49,7 @@
 //
 // Set TOUCH_TYPE to match the display variant in hand:
 //   TOUCH_TYPE_NONE  =>  CFAL368448A0-019DN (no touch)
-//   TOUCH_TYPE_CAP   =>  CFAL368448A0-019DC (capacitive touch)
-//
-// Cap touch implementation is not yet included; setting TOUCH_TYPE_CAP
-// reserves the compile-time flag so it can be filled in later.
+//   TOUCH_TYPE_CAP   =>  CFAL368448A0-019DC (capacitive touch, CST816)
 //==============================================================================
 #define TOUCH_TYPE_NONE  (0)
 #define TOUCH_TYPE_CAP   (1)
@@ -83,13 +80,13 @@
 //   SD card images:      COLOR=1 CIRCLES=0 LINES=0 CHECKER=0 EXPANDING=0
 //                        LOGO=0 SD=1
 //==============================================================================
-#define COLOR_DEMO      (0)  // Solid color cycle: red, green, blue, white
-#define CIRCLES_DEMO    (0)  // Multiple circles (Midpoint circle algorithm)
+#define COLOR_DEMO      (1)  // Solid color cycle: red, green, blue, white
+#define CIRCLES_DEMO    (1)  // Multiple circles (Midpoint circle algorithm)
 #define LINES_DEMO      (0)  // Line fan from center (Bresenham's algorithm)
-#define CHECKER_DEMO    (0)  // 16x16 color checkerboard
-#define EXPANDING_DEMO  (0)  // Row of expanding concentric circles
+#define CHECKER_DEMO    (1)  // 16x16 color checkerboard
+#define EXPANDING_DEMO  (1)  // Row of expanding concentric circles
 #define LOGO_DEMO       (0)  // CFA logo from flash  (requires cfa_logo.h)
-#define SD_DEMO         (1)  // BMP images from micro SD card
+#define SD_DEMO         (0)  // BMP images from micro SD card
 
 // Milliseconds to pause between demo screens
 #define WAIT_TIME  (2000)
@@ -133,8 +130,8 @@
 //  --------+------+------+-------------------------------------------
 //    A0    |  PC0 |  C   | QSPI IO0 / SDI  (single-wire command mode)
 //    A1    |  PC1 |  C   | QSPI IO1 / DCX
-//    A2    |  PC2 |  C   | QSPI IO3 / D1
-//    A3    |  PC3 |  C   | QSPI IO2 / D0
+//    A2    |  PC2 |  C   | QSPI IO2 / D0
+//    A3    |  PC3 |  C   | QSPI IO3 / D1
 //  --------+------+------+-------------------------------------------
 //    D8    |  PB0 |  B   | Display reset        (active low)
 //    D9    |  PB1 |  B   | Display chip select  (active low)
@@ -144,6 +141,11 @@
 //    D13   |  PB5 |  B   | SD SCK   (hardware SPI -- display not connected)
 //  --------+------+------+-------------------------------------------
 //    D5    |  PD5 |  D   | QSPI CLK
+//  --------+------+------+-------------------------------------------
+//    D6    |  PD6 |  D   | CST816 reset (active low) [DC variant only]
+//    D7    |  PD7 |  D   | CST816 interrupt (active low) [DC variant only]
+//    A4    |  PC4 |  C   | I2C SDA (hardware TWI) [DC variant only]
+//    A5    |  PC5 |  C   | I2C SCL (hardware TWI) [DC variant only]
 //==============================================================================
 
 // PORTC: set PC0-PC3 as outputs; leave PC4-PC7 alone.
@@ -156,8 +158,8 @@
 // PORTC bit masks  (QSPI data signals)
 #define SDI_MASK  (0x01)   // PC0, A0 -- QSPI IO0
 #define DCX_MASK  (0x02)   // PC1, A1 -- QSPI IO1
-#define D1_MASK   (0x04)   // PC2, A2 -- QSPI IO3
-#define D0_MASK   (0x08)   // PC3, A3 -- QSPI IO2
+#define D0_MASK   (0x04)   // PC2, A2 -- QSPI IO2
+#define D1_MASK   (0x08)   // PC3, A3 -- QSPI IO3
 
 // PORTD bit masks
 #define CLK_MASK  (0x20)   // PD5, D5  -- QSPI CLK
@@ -167,7 +169,21 @@
 #define CS_MASK    (0x02)  // PB1, D9  -- display chip select
 #define SDCS_MASK  (0x04)  // PB2, D10 -- SD card chip select
 
+// Touch controller pins and I2C address  (CFAL368448A0-019DC only)
+#define TOUCH_RST_PIN   6     // D6 = PD6 -- CST816 reset (active low)
+#define TOUCH_INT_PIN   7     // D7 = PD7 -- CST816 interrupt (active low)
+#define TOUCH_I2C_ADDR  0x15  // CST816 I2C address
+
 // Direct port manipulation macros
+//
+// CLR_SDI / SET_SDI are used by spiSendByte() for single-wire command mode.
+// CLR_CLK / SET_CLK are used by both spiSendByte() and qspiSendByte().
+// CLR_CS / SET_CS, CLR_RST / SET_RST, CLR_SDCS / SET_SDCS are used throughout.
+//
+// CLR_DCX / SET_DCX and CLR_D0 / SET_D0 / CLR_D1 / SET_D1 are provided for
+// completeness.  The current QSPI implementation writes all four IO lines
+// atomically via PORTC; these individual-bit macros are not needed in normal
+// operation but may be useful when adapting this code to other protocols.
 #define CLR_SDI   (PORTC &= ~SDI_MASK)
 #define SET_SDI   (PORTC |=  SDI_MASK)
 #define CLR_DCX   (PORTC &= ~DCX_MASK)
@@ -190,11 +206,13 @@
 //
 // Save the script below as "convert_bmp.py" and run it with Python 3.
 // Requires the Pillow library:  pip install Pillow
+// 
 //
 // Usage:  python convert_bmp.py input.jpg
 //   Scales and pads the input to 368x448 with black letterbox/pillarbox
 //   borders, then writes IMAGE.BMP as a 16-bit RGB565 top-down BMP.
 //   Copy IMAGE.BMP (and any other .BMP files you like) to the SD card root.
+//   An example batch file can be found in the project repository.
 //
 //--- convert_bmp.py ---------------------------------------------------
 // import sys, struct
@@ -246,4 +264,4 @@
 // print(f"Saved {OUT_FILE}")
 //----------------------------------------------------------------------
 
-#endif // CFAL368448A0_019DN_H
+#endif // CFAL368448A0_019DX_H
