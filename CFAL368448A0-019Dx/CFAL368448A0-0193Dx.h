@@ -1,20 +1,20 @@
-#ifndef CFAL368448A0_019DX_H
-#define CFAL368448A0_019DX_H
+#ifndef CFAL368448A0_0193DX_H
+#define CFAL368448A0_0193DX_H
 //==============================================================================
 //
-//  CRYSTALFONTZ CFAL368448A0-019DN / CFAL368448A0-019DC
+//  CRYSTALFONTZ CFAL368448A0-0193DN / CFAL368448A0-0193DW
 //  1.93" AMOLED Display, 368x448 pixels
 //  Driver IC:  CH13620
 //  Interface:  QSPI (bit-banged)
 //
-//  CFAL368448A0-019DN -- No touchscreen
-//  CFAL368448A0-019DC -- Capacitive touchscreen (implementation pending)
+//  CFAL368448A0-0193DN -- No touchscreen
+//  CFAL368448A0-0193DW -- Capacitive touchscreen (implementation pending)
 //
 //  Code written for Seeeduino v4.2 set to 3.3V (IMPORTANT!)
 //    https://www.crystalfontz.com/product/cfapn15062
 //
-//  https://www.crystalfontz.com/product/cfal368448a0019dn
-//  https://www.crystalfontz.com/product/cfal368448a0019dc
+//  https://www.crystalfontz.com/product/cfal368448a00193dn
+//  https://www.crystalfontz.com/product/cfal368448a00193dw
 //
 //==============================================================================
 //
@@ -48,8 +48,8 @@
 // VARIANT SELECTION
 //
 // Set TOUCH_TYPE to match the display variant in hand:
-//   TOUCH_TYPE_NONE  =>  CFAL368448A0-019DN (no touch)
-//   TOUCH_TYPE_CAP   =>  CFAL368448A0-019DC (capacitive touch, CST816)
+//   TOUCH_TYPE_NONE  =>  CFAL368448A0-0193DN (no touch)
+//   TOUCH_TYPE_CAP   =>  CFAL368448A0-0193DW (wide glass capacitive touch, CST816)
 //==============================================================================
 #define TOUCH_TYPE_NONE  (0)
 #define TOUCH_TYPE_CAP   (1)
@@ -80,13 +80,13 @@
 //   SD card images:      COLOR=1 CIRCLES=0 LINES=0 CHECKER=0 EXPANDING=0
 //                        LOGO=0 SD=1
 //==============================================================================
-#define COLOR_DEMO      (0)  // Solid color cycle: red, green, blue, white
-#define CIRCLES_DEMO    (0)  // Multiple circles (Midpoint circle algorithm)
+#define COLOR_DEMO      (1)  // Solid color cycle: red, green, blue, white
+#define CIRCLES_DEMO    (1)  // Multiple circles (Midpoint circle algorithm)
 #define LINES_DEMO      (0)  // Line fan from center (Bresenham's algorithm)
-#define CHECKER_DEMO    (0)  // 16x16 color checkerboard
-#define EXPANDING_DEMO  (0)  // Row of expanding concentric circles
+#define CHECKER_DEMO    (1)  // 16x16 color checkerboard
+#define EXPANDING_DEMO  (1)  // Row of expanding concentric circles
 #define LOGO_DEMO       (0)  // CFA logo from flash  (requires cfa_logo.h)
-#define SD_DEMO         (1)  // BMP images from micro SD card
+#define SD_DEMO         (0)  // BMP images from micro SD card
 
 // Milliseconds to pause between demo screens
 #define WAIT_TIME  (2000)
@@ -169,7 +169,7 @@
 #define CS_MASK    (0x02)  // PB1, D9  -- display chip select
 #define SDCS_MASK  (0x04)  // PB2, D10 -- SD card chip select
 
-// Touch controller pins and I2C address  (CFAL368448A0-019DC only)
+// Touch controller pins and I2C address  (CFAL368448A0-0193DW only)
 #define TOUCH_RST_PIN   6     // D6 = PD6 -- CST816 reset (active low)
 #define TOUCH_INT_PIN   7     // D7 = PD7 -- CST816 interrupt (active low)
 #define TOUCH_I2C_ADDR  0x15  // CST816 I2C address
@@ -264,4 +264,4 @@
 // print(f"Saved {OUT_FILE}")
 //----------------------------------------------------------------------
 
-#endif // CFAL368448A0_019DX_H
+#endif // CFAL368448A0_0193DX_H

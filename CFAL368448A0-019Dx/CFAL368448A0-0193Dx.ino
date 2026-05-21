@@ -1,18 +1,18 @@
 //==============================================================================
 //
-//  CRYSTALFONTZ CFAL368448A0-019DN / CFAL368448A0-019DC
+//  CRYSTALFONTZ CFAL368448A0-0193DN / CFAL368448A0-0193DW
 //  1.93" AMOLED Display, 368x448 pixels
 //  Driver IC:  CH13620
 //  Interface:  QSPI (bit-banged)
 //
-//  CFAL368448A0-019DN - No touchscreen
-//  CFAL368448A0-019DC - Capacitive touchscreen 
+//  CFAL368448A0-0193DN - No touchscreen
+//  CFAL368448A0-0193DW - Capacitive touchscreen 
 //
 //  Code written for Seeeduino v4.2 set to 3.3V (IMPORTANT!)
 //    https://www.crystalfontz.com/product/cfapn15062
 //
-//  https://www.crystalfontz.com/product/cfal368448a0019dn
-//  https://www.crystalfontz.com/product/cfal368448a0019dc
+//  https://www.crystalfontz.com/product/cfal368448a00193dn
+//  https://www.crystalfontz.com/product/cfal368448a00193dw
 //
 //==============================================================================
 //
@@ -71,7 +71,7 @@
 // The display QSPI bus (A0-A3 / PORTC, D5 / PORTD) and the SD hardware SPI bus
 // (D11-D13 / PORTB) are on separate ports with no shared pins.
 //
-// Cap touch (CST816) -- CFAL368448A0-019DC only:
+// Cap touch (CST816) -- CFAL368448A0-0193DW only:
 // | Touch Pin      | Seeeduino | Signal                            |
 // |----------------+-----------+-----------------------------------|
 // |  RST           |    D6     | CST816 reset (active low)         |
@@ -83,7 +83,7 @@
 
 #include <Arduino.h>
 #include <avr/pgmspace.h>
-#include "CFAL368448A0-019Dx.h"
+#include "CFAL368448A0-0193Dx.h"
 
 #if (0 != LOGO_DEMO)
 #include "cfa_logo.h" // PROGMEM RGB565 array; defines LOGO_WIDTH, LOGO_HEIGHT
@@ -510,7 +510,7 @@ void drawBitmap(uint16_t x, uint16_t y,
 //==============================================================================
 
 // Swap helper and line primitives -- only compiled when LINES_DEMO is active
-#if (0 != LINES_DEMO || TOUCH_TYPE != TOUCH_CAP)
+#if (0 != LINES_DEMO || TOUCH_TYPE == TOUCH_TYPE_CAP)
 #define mSwap(a, b, t) \
   {                    \
     t = a;             \
@@ -816,7 +816,7 @@ void show_BMPs_in_root(void)
 #endif // BUILD_SD
 
 //==============================================================================
-// CAP TOUCH  (CFAL368448A0-019DC)
+// CAP TOUCH  (CFAL368448A0-0193DW)
 // Controller: CST816  (I2C 0x15)
 // Reset: D6 (active low)    INT: D7 (active low)
 // SDA: A4    SCL: A5  (ATmega328P hardware TWI)
@@ -888,7 +888,7 @@ void drawCloseButton()
 void setup()
 {
   Serial.begin(9600);
-  Serial.println(F("CFAL368448A0-019DN/DC"));
+  Serial.println(F("CFAL368448A0-0193DN/DW demo starting..."));
 
   // Drive CS and RST high BEFORE setting pin directions so the display never
   // sees a spurious chip-select assertion during the transition.

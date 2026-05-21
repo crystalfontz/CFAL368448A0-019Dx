@@ -1,6 +1,6 @@
-# CFAL368448A0-019Dx Arduino Demo
+# CFAL368448A0-0193Dx Arduino Demo
 
-Demo code for the Crystalfontz CFAL368448A0-019Dx 1.93" AMOLED displays,
+Demo code for the Crystalfontz CFAL368448A0-0193Dx 1.93" AMOLED displays,
 targeting a [Seeeduino v4.2](https://www.crystalfontz.com/product/cfapn15062)
 (ATmega328P) with a bit-banged QSPI interface.
 
@@ -8,8 +8,8 @@ targeting a [Seeeduino v4.2](https://www.crystalfontz.com/product/cfapn15062)
 
 | Part Number | Description | Link |
 | --- | --- | --- |
-| CFAL368448A0-019DN | 1.93" AMOLED, 368×448, no touch | https://www.crystalfontz.com/product/cfal368448a0019dn |
-| CFAL368448A0-019DC | 1.93" AMOLED, 368×448, capacitive touch (CST816) | https://www.crystalfontz.com/product/cfal368448a0019dc |
+| CFAL368448A0-0193DN | 1.93" AMOLED, 368×448, no touch | https://www.crystalfontz.com/product/cfal368448a00193dn |
+| CFAL368448A0-0193DW | 1.93" AMOLED, 368×448, capacitive touch (CST816) | https://www.crystalfontz.com/product/cfal368448a00193dw |
 | CFAPN15062 | Seeeduino v4.2 (recommended dev board) | https://www.crystalfontz.com/product/cfapn15062 |
 
 ## Overview
@@ -54,7 +54,7 @@ PORTB and does not conflict.
 | D12 | PB4 | SD MISO (hardware SPI) | In |
 | D13 | PB5 | SD SCK (hardware SPI) | Out |
 
-### Capacitive Touch (CFAL368448A0-019DC only)
+### Capacitive Touch (CFAL368448A0-0193DW only)
 
 | Arduino Pin | AVR | Signal | Direction |
 | --- | --- | --- | --- |
@@ -66,12 +66,12 @@ PORTB and does not conflict.
 ## Quick Start
 
 1. Clone or download this repository.
-2. Open `CFAL368448A0-019Dx/CFAL368448A0-019Dx.ino` in the Arduino IDE.
-3. In `CFAL368448A0-019Dx.h`, set `TOUCH_TYPE` to match your hardware:
+2. Open `CFAL368448A0-0193Dx/CFAL368448A0-0193Dx.ino` in the Arduino IDE.
+3. In `CFAL368448A0-0193Dx.h`, set `TOUCH_TYPE` to match your hardware:
 
    ```c
-   #define TOUCH_TYPE  TOUCH_TYPE_NONE   // CFAL368448A0-019DN (no touch)
-   #define TOUCH_TYPE  TOUCH_TYPE_CAP    // CFAL368448A0-019DC (capacitive touch)
+   #define TOUCH_TYPE  TOUCH_TYPE_NONE   // CFAL368448A0-0193DN (no touch)
+   #define TOUCH_TYPE  TOUCH_TYPE_CAP    // CFAL368448A0-0193DW (capacitive touch)
    ```
 
 4. Enable or disable demos using the feature flags (see below).
@@ -80,7 +80,7 @@ PORTB and does not conflict.
 
 ## Demo Feature Flags
 
-Edit the flags near the top of `CFAL368448A0-019Dx.h`. The ATmega328P has
+Edit the flags near the top of `CFAL368448A0-0193Dx.h`. The ATmega328P has
 32 KB of flash — watch the budget when enabling multiple demos.
 
 | Flag | Default | Flash | Description |
@@ -126,7 +126,7 @@ The script scales and letterboxes the source image to 368×448 with black
 borders, then writes a top-down, little-endian RGB565 BMP. Copy the resulting
 `.bmp` files to the root of the SD card.
 
-## Touch Variant (CFAL368448A0-019DC)
+## Touch Variant (CFAL368448A0-0193DW)
 
 Set `#define TOUCH_TYPE TOUCH_TYPE_CAP` in the header to enable the CST816
 driver. The touch controller communicates over I2C at address `0x15`. A small
