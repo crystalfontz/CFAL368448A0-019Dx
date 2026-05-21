@@ -16,7 +16,7 @@
 //
 //==============================================================================
 //
-//  2026-05-18 Crystalfontz
+//  2026-05-18 Crystalfontz America Inc.
 //
 //==============================================================================
 // This is free and unencumbered software released into the public domain.
@@ -684,11 +684,9 @@ bool drawBitmapFromSD(const char *filename)
   }
 
   // Parse header fields (BMP is little-endian)
-  uint32_t dataOffset = hdr[10] | (hdr[11] << 8) | (hdr[12] << 16) | (hdr[13] << 24);
-
-  int32_t imgW = hdr[18] | (hdr[19] << 8) | (hdr[20] << 16) | (hdr[21] << 24);
-
-  int32_t imgH = hdr[22] | (hdr[23] << 8) | (hdr[24] << 16) | (hdr[25] << 24);
+  uint32_t dataOffset = (uint32_t)hdr[10] | ((uint32_t)hdr[11] << 8) | ((uint32_t)hdr[12] << 16) | ((uint32_t)hdr[13] << 24);
+  int32_t imgW = (uint32_t)hdr[18] | ((uint32_t)hdr[19] << 8) | ((uint32_t)hdr[20] << 16) | ((uint32_t)hdr[21] << 24);
+  int32_t imgH = (uint32_t)hdr[22] | ((uint32_t)hdr[23] << 8) | ((uint32_t)hdr[24] << 16) | ((uint32_t)hdr[25] << 24);
 
   // Output some info about the image to the serial console for debugging
   Serial.print(F("SD: "));
